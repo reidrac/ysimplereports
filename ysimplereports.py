@@ -45,6 +45,15 @@ class ysimplereports:
 		if not 'type' in r['connect'] or r['connect']['type'] not in ('sqlite', 'mysql'):
 			raise Exception('Invalid connect type (sqlite, mysql) in report "%s"' % r['name'])
 
+		if r['connect']['type'] == 'mysql':
+			if not 'username' in r['connect'] or not 'password' in r['connect']:
+				raise Exception('username and/or password missing in report "%s"' % r['name'])
+			if not 'hostname' in r['connect'] and 'port' in r['connect']:
+				raise Exception('port without hostname in report "%s"' % r['name'])
+			if 'hostname' in r['connect'] and not 'port' in r['connect']:
+				# use default port if not specified
+				r['connect']['port'] = 3306
+
 		self._status |= self.STATUS['parsed']
 
 	@property
@@ -74,6 +83,23 @@ class ysimplereports:
 
 			try:
 				self._db = sqlite3.connect(connect['database'])
+			except:
+				raise Exception('Failed to open %s' % connect['database'])
+		elif connect['type'] == 'mysql':
+			try:
+				import MySQLdb
+			except:
+				raise Exception('Unable to load mysql support')
+
+			try:
+				if 'hostname' in connect:
+					# hostname implies port (although it can be default)
+					self._db = MySQLdb.connect(db = connect['database'], 
+						user = connect['username'], passwd = connect['password'], 
+						host = connect['hostname'], port = connect['port'])
+				else:
+					self._db = MySQLdb.connect(db = connect['database'], 
+						user = connect['username'], passwd = connect['password'])
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		else:

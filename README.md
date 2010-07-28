@@ -11,11 +11,11 @@ The report it's specified in a YAML file:
 		name: example report		# req
 		connect:					# req
 			type: sqlite			# req: sqlite3, mysql
-			database: file.db		# req
-			hostname: localhost 	# opt with mysql
-			port: 3306				# opt with mysql
+			database: dbname		# req (sqlite: filename, mysql: dbname)
+			hostname: localhost 	# opt with mysql, by default UNIX socket
+			port: 3306				# opt with mysql, requited if hostname
 			username: user			# req with mysql
-			password: passwd		# req with mysql
+			password: passwd		# req with mysql, use '' for empty
 		query: select * from table	# req
 		output: file.csv			# req (format by ext: .csv, .json, .xml)
 
@@ -27,7 +27,7 @@ Required
 At least one of the following:
 
  - sqlite3
- - MySQLdb (unfinished)
+ - MySQLdb
 
 License
 -------
