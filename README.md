@@ -12,7 +12,7 @@ The report it's specified in a YAML file:
 		connect:					# req
 			type: sqlite			# req: sqlite3, mysql
 			database: file.db		# req
-			hostname: localhost 	# req with mysql
+			hostname: localhost 	# opt with mysql
 			port: 3306				# opt with mysql
 			username: user			# req with mysql
 			password: passwd		# req with mysql
