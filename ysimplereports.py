@@ -238,7 +238,6 @@ def main():
 		simple.execute()
 		log.debug('execution done!')
 	except Exception as e:
-		raise
 		log.error(e)
 		exit(1)
 
