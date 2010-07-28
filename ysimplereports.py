@@ -92,14 +92,18 @@ class ysimplereports:
 				raise Exception('Unable to load mysql support')
 
 			try:
+				args = { 
+					'db': connect['database'],
+					'user': connect['username'],
+					'passwd': connect['password'],
+					}
+
 				if 'hostname' in connect:
 					# hostname implies port (although it can be default)
-					self._db = MySQLdb.connect(db = connect['database'], 
-						user = connect['username'], passwd = connect['password'], 
-						host = connect['hostname'], port = connect['port'])
-				else:
-					self._db = MySQLdb.connect(db = connect['database'], 
-						user = connect['username'], passwd = connect['password'])
+						args['host'] = connect['hostname']
+						args['port'] = connect['port']
+
+				self._db = MySQLdb.connect(**args)
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		else:
