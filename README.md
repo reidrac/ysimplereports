@@ -32,6 +32,7 @@ At least one of the following:
 Author
 ------
 
-Juan J. Martinez <jjm at usebox dot net>
+Juan J. Martinez <jjm@usebox.net>
+
 This tool is free software under the MIT license.
 
