@@ -10,7 +10,7 @@ The report it's specified in a YAML file:
 	report:
 		name: example report		# req
 		connect:					# req
-			type: sqlite			# req: sqlite3, mysql
+			type: mysql				# req: sqlite, mysql
 			database: dbname		# req (sqlite: filename, mysql: dbname)
 			hostname: localhost 	# opt with mysql, by default UNIX socket
 			port: 3306				# opt with mysql, requited if hostname
