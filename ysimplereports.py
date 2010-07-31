@@ -334,7 +334,7 @@ class ysimplereports:
 
 
 def main():
-	VERSION = '0.1'
+	VERSION = '0.2'
 
 	LOG_LEVELS = {
 		'debug': logging.DEBUG,
