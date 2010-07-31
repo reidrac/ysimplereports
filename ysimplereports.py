@@ -59,7 +59,7 @@ import re
 
 class ysimplereports:
 	def __init__(self, yaml):
-		"""Create a ysimplereports instance given a YAML filename."""
+		"""Create a ysimplereports instance given a YAML parsed Python object."""
 		self._yaml = yaml
 		self._format = None
 		self._output = None
