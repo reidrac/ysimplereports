@@ -129,11 +129,11 @@ class ysimplereports:
 				raise Exception('Missing query in report "%s"' % r['name'])
 
 		if 'connect' in r:
-			if not 'type' in r['connect'] or r['connect']['type'] not in ('sqlite', 'mysql'):
-				raise Exception('Invalid connect type %s (expected sqlite, mysql) in report "%s"' % 
+			if not 'type' in r['connect'] or r['connect']['type'] not in ('sqlite', 'mysql', 'postgresql'):
+				raise Exception('Invalid connect type %s (expected sqlite, mysql, postgresql) in report "%s"' % 
 					(r['connect']['type'], r['name']))
 
-			if r['connect']['type'] == 'mysql':
+			if r['connect']['type'] == 'mysql' or r['connect']['type'] == 'postgresql':
 				if not 'username' in r['connect'] or not 'password' in r['connect']:
 					raise Exception('username and/or password missing in report "%s"' % r['name'])
 				if not 'hostname' in r['connect'] and 'port' in r['connect']:
@@ -197,6 +197,27 @@ class ysimplereports:
 						args['port'] = connect['port']
 
 				db = MySQLdb.connect(**args)
+			except:
+				raise Exception('Failed to open %s' % connect['database'])
+		elif connect['type'] == 'postgresql':
+			try:
+				import psycopg2
+			except:
+				raise Exception('Unable to load postgresql support')
+
+			try:
+				args = { 
+					'database': connect['database'],
+					'user': connect['username'],
+					'passwd': connect['password'],
+					}
+
+				if 'hostname' in connect:
+					# hostname implies port (although it can be default)
+						args['host'] = connect['hostname']
+						args['port'] = connect['port']
+
+				db = psycopg2.connect(**args)
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		else:

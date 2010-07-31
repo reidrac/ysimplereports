@@ -1,21 +1,21 @@
 YAML Simple SQL Reports
 =======================
 
-This is a script to make queries to different databases (sqlite3 and MySQL
-supported, others can be added), and output the result in CVS, JSON or XML
-format.
+This is a script to make queries to different databases (sqlite3, MySQL and
+PostgreSQL supported, others can be added), and output the result in CVS,
+JSON or XML format.
 
 The report it's specified in a YAML file:
 
 	report:
 		name: example report		# req
 		connect:					# req
-			type: mysql				# req: sqlite, mysql
-			database: dbname		# req (sqlite: filename, mysql: dbname)
-			hostname: localhost 	# opt with mysql, by default UNIX socket
-			port: 3306				# opt with mysql, requited if hostname
-			username: user			# req with mysql
-			password: passwd		# req with mysql, use '' for empty
+			type: mysql				# req: sqlite, mysql, postgresql
+			database: dbname		# req (sqlite: filename, mysql, postgresql: dbname)
+			hostname: localhost 	# opt with mysql and postgresql, by default UNIX socket
+			port: 3306				# opt with mysql and postgresql, requited if hostname
+			username: user			# req with mysql and postgresql
+			password: passwd		# req with mysql and postgresql, use '' for empty
 		query: select * from table	# req
 		output: file.csv			# req (format by ext: .csv, .json, .xml)
 
@@ -56,6 +56,7 @@ At least one of the following:
 
  - sqlite3
  - MySQLdb
+ - psycopg2
 
 Author
 ------
