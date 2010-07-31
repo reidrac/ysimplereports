@@ -19,6 +19,34 @@ The report it's specified in a YAML file:
 		query: select * from table	# req
 		output: file.csv			# req (format by ext: .csv, .json, .xml)
 
+Subreports are supported with following data flow:
+
+	1. Execute the main query
+	2. For each row do:
+		2.1. Replace {KEY} in the subreport with VALUE
+		2.2. Process subreport
+	3. Write result as concatenated rows from each subreport
+
+Subreport example:
+
+	report:
+		name: example report
+		connect:
+			type: mysql	
+			database: dbname
+			username: user
+			password: passwd
+		query: select id, dbname, username, password from foo
+		report:
+			name: example subreport
+			connect:			# connect is optional in subreports
+				type: mysql
+				database: {dbname}
+				username: {username}
+				password: {password}
+			query: select {id} as DB_ID, * from bar
+		output: file.csv
+
 Required
 --------
 

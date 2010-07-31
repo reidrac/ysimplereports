@@ -40,11 +40,38 @@ Here is an example YAML file:
 		connect:
 			type: sqlite
 			database: database.db
-			query: select a as Col_a, b as Col_b from table
+		query: select a as Col_a, b as Col_b from table
 		output: example.csv
 
 The output format it's determined by the extension of the
 output file.
+
+Subreports are supported, adding a report item inside the
+main report:
+
+	report:
+		name: example report
+		connect:
+			type: mysql	
+			database: dbname
+			username: user
+			password: passwd
+		query: select id, dbname, username, password from foo
+		report:
+			name: example subreport
+			connect:			# connect is optional in subreports
+				type: mysql
+				database: {dbname}
+				username: {username}
+				password: {password}
+			query: select {id} as DB_ID, * from bar
+		output: file.csv
+
+The subquery will be executed for each row in the main query, and
+any {KEY} will be replaced by VALUE.
+
+In subreports, 'connect' is optional (and then, main report connection
+will be used).
 
 More information: http://github.com/reidrac/ysimplereports
 """
@@ -63,20 +90,19 @@ class ysimplereports:
 		self._yaml = yaml
 		self._format = None
 		self._output = None
-		self._db = None
 
-		self.STATUS = { 'init': 0, 'parsed': 1, 'connected': 2 }
-		self._status = 0
+		# main report database handler
+		self._db = None
 
 	def parse(self):
 		"""Parse the YAML file. This method must be called once before
 		   running the report."""
-		# basic checks
+
 		if not 'report' in self._yaml:
-			self.log.error('At least one report is expected')
+			self.log.error('One report is expected')
 
 		r = self._yaml['report']
-		checkFields = ('name', 'query', 'output', 'connect')
+		checkFields = ('name', 'output', 'connect')
 		for check in checkFields:
 			if not check in r:
 				raise Exception('Missing %s in report' % check)
@@ -88,45 +114,59 @@ class ysimplereports:
 		self._format = self._format[-1]
 		self._output = r['output']
 
-		if not 'type' in r['connect'] or r['connect']['type'] not in ('sqlite', 'mysql'):
-			raise Exception('Invalid connect type (sqlite, mysql) in report "%s"' % r['name'])
+		# parse fields common to both reports and subreports
+		self._parse(self._yaml['report'])
 
-		if r['connect']['type'] == 'mysql':
-			if not 'username' in r['connect'] or not 'password' in r['connect']:
-				raise Exception('username and/or password missing in report "%s"' % r['name'])
-			if not 'hostname' in r['connect'] and 'port' in r['connect']:
-				raise Exception('port without hostname in report "%s"' % r['name'])
-			if 'hostname' in r['connect'] and not 'port' in r['connect']:
-				# use default port if not specified
-				r['connect']['port'] = 3306
+	def _parse(self, r):
+		# this parse checks fields that may be available in both reports
+		# and subreports
 
-		self._status |= self.STATUS['parsed']
+		# just in case (name in subreports is optional)
+		if not 'name' in r:
+			r['name'] = '<unamed subreport>'
+
+		if not 'query' in r:
+				raise Exception('Missing query in report "%s"' % r['name'])
+
+		if 'connect' in r:
+			if not 'type' in r['connect'] or r['connect']['type'] not in ('sqlite', 'mysql'):
+				raise Exception('Invalid connect type %s (expected sqlite, mysql) in report "%s"' % 
+					(r['connect']['type'], r['name']))
+
+			if r['connect']['type'] == 'mysql':
+				if not 'username' in r['connect'] or not 'password' in r['connect']:
+					raise Exception('username and/or password missing in report "%s"' % r['name'])
+				if not 'hostname' in r['connect'] and 'port' in r['connect']:
+					raise Exception('port without hostname in report "%s"' % r['name'])
+				if 'hostname' in r['connect'] and not 'port' in r['connect']:
+					# use default port if not specified
+					r['connect']['port'] = 3306
 
 	@property
 	def format(self):
 		"""Get output format (csv, xml or json)."""
-		if self._status < self.STATUS['parsed']:
+		if self._format is None:
 			raise Exception('Parse the report first')
 		return self._format
 
 	@property
 	def output(self):
 		"""Get output filename."""
-		if self._status < self.STATUS['parsed']:
+		if self._output is None:
 			raise Exception('Parse the report first')
 		return self._output
 
 	def connect(self):
 		"""Connect to the database before executing the report."""
-		self._db = self._connect()
-		self._status |= self.STATUS['connected']
+
+		try:
+			self._db = self._connect(self._yaml['report']['connect'])
+		except Exception as e:
+			raise Exception('In report "%s": %s' % (self._yaml['report']['name'], e))
 
 	def _connect(self, connect = None):
-		if self._status < self.STATUS['parsed']:
+		if self._output is None:
 			raise Exception('Parse the report first')
-
-		if connect is None:
-			connect = self._yaml['report']['connect']
 
 		if connect['type'] == 'sqlite':
 			try:
@@ -156,7 +196,7 @@ class ysimplereports:
 						args['host'] = connect['hostname']
 						args['port'] = connect['port']
 
-				self.db = MySQLdb.connect(**args)
+				db = MySQLdb.connect(**args)
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		else:
@@ -165,22 +205,79 @@ class ysimplereports:
 
 		return db
 
+	def _replace(self, yaml, fields):
+		# replace {KEY} with VALUE in a Pyhton object
+		if type(yaml).__name__ == 'str':
+			for fkey in fields.keys():
+				yaml = yaml.replace('{' + str(fkey) + '}', str(fields[fkey]))
+		else:
+			for key in yaml.keys():
+				yaml[key] = self._replace(yaml[key], fields)
+
+		return yaml
+
 	def execute(self):
 		"""Execute the report once connection it's called. The results will be
-		   stored in the output file."""
-		header, rows = self._execute()
+		   stored in the output file identified by parse()."""
 
+		try:
+			header, rows = self._execute(self._yaml['report']['query'], self._db)
+		except Exception as e:
+			raise Exception('In report "%s": %s' % (self._yaml['report']['name'], e))
+
+		# subreport support: execute the subquery for each row of the parent
+		# query, remplacing the row values in the subquery
+		if 'report' in self._yaml['report']:
+			subheader = None
+			subrows = None
+			for r in rows:
+				subyaml = self._yaml['report']['report'].copy()
+				fields = {}
+				for i in range(len(header)):
+					fields[header[i]] = r[i]
+				subyaml = self._replace(subyaml, fields)
+
+				self._parse(subyaml)
+
+				# allow connection to other databases based in the
+				# parent query results, or use main connection
+				# TODO: detect if connection string changed in the loop
+				# and just open one extra connection in that case
+				if 'connect' in subyaml:
+					try:
+						db = self._connect(subyaml['connect'])
+					except Exception as e:
+						raise Exception('In report "%s": %s' % (subyaml['name'], e))
+				else:
+					db = self._db
+
+				try:
+					dummy, newrows = self._execute(subyaml['query'], db)
+				except Exception as e:
+					raise Exception('In report "%s": %s' % (subyaml['name'], e))
+
+				if subheader is None:
+					subheader = dummy
+					subrows = newrows
+				else:
+					subrows.extend(newrows)
+
+				# actually we open one connection per iteration, so close it
+				if 'connect' in subyaml:
+					db.close()
+
+			header = subheader
+			rows = subrows
+
+		# main report connection
+		self._db.close()
 		self._write(header, rows)
-		self._status = self.STATUS['init']
 
-	def _execute(self, query = None):
-		if self._status < self.STATUS['connected']:
+	def _execute(self, query = None, db = None):
+		if db is None:
 			raise Exception('Connect first')
 
-		if query is None:
-			query = self._yaml['report']['query']
-
-		cur = self._db.cursor()
+		cur = db.cursor()
 		try:
 			result = cur.execute(query)
 		except:
@@ -198,6 +295,9 @@ class ysimplereports:
 		return (cols, data)
 
 	def _write(self, header, rows):
+		if self._output is None:
+			raise Exception('Parse the report first')
+
 		fd = open(self._output, 'w')
 
 		if self._format == 'csv':
