@@ -28,6 +28,27 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #
 
+"""YAML SQL Simple Reports.
+
+This is a small tool to run simple reports as specified in a
+YAML input format.
+
+Here is an example YAML file:
+
+	report:
+		name: example report
+		connect:
+			type: sqlite
+			database: database.db
+			query: select a as Col_a, b as Col_b from table
+		output: example.csv
+
+The output format it's determined by the extension of the
+output file.
+
+More information: http://github.com/reidrac/ysimplereports
+"""
+
 import csv
 import simplejson as json
 from xml.dom.minidom import Document
@@ -38,6 +59,7 @@ import re
 
 class ysimplereports:
 	def __init__(self, yaml):
+		"""Create a ysimplereports instance given a YAML filename."""
 		self._yaml = yaml
 		self._format = None
 		self._output = None
@@ -47,6 +69,8 @@ class ysimplereports:
 		self._status = 0
 
 	def parse(self):
+		"""Parse the YAML file. This method must be called once before
+		   running the report."""
 		# basic checks
 		if not 'report' in self._yaml:
 			self.log.error('At least one report is expected')
@@ -80,17 +104,24 @@ class ysimplereports:
 
 	@property
 	def format(self):
+		"""Get output format (csv, xml or json)."""
 		if self._status < self.STATUS['parsed']:
 			raise Exception('Parse the report first')
 		return self._format
 
 	@property
 	def output(self):
+		"""Get output filename."""
 		if self._status < self.STATUS['parsed']:
 			raise Exception('Parse the report first')
 		return self._output
 
-	def connect(self, connect = None):
+	def connect(self):
+		"""Connect to the database before executing the report."""
+		self._db = self._connect()
+		self._status |= self.STATUS['connected']
+
+	def _connect(self, connect = None):
 		if self._status < self.STATUS['parsed']:
 			raise Exception('Parse the report first')
 
@@ -104,7 +135,7 @@ class ysimplereports:
 				raise Exception('Unable to load sqlite3 support')
 
 			try:
-				self._db = sqlite3.connect(connect['database'])
+				db = sqlite3.connect(connect['database'])
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		elif connect['type'] == 'mysql':
@@ -125,16 +156,24 @@ class ysimplereports:
 						args['host'] = connect['hostname']
 						args['port'] = connect['port']
 
-				self._db = MySQLdb.connect(**args)
+				self.db = MySQLdb.connect(**args)
 			except:
 				raise Exception('Failed to open %s' % connect['database'])
 		else:
 			# unlikely
 			raise Exception('Unsupported connection type %s' % connect['type'])
 
-		self._status |= self.STATUS['connected']
+		return db
 
-	def execute(self, query = None):
+	def execute(self):
+		"""Execute the report once connection it's called. The results will be
+		   stored in the output file."""
+		header, rows = self._execute()
+
+		self._write(header, rows)
+		self._status = self.STATUS['init']
+
+	def _execute(self, query = None):
 		if self._status < self.STATUS['connected']:
 			raise Exception('Connect first')
 
@@ -156,10 +195,9 @@ class ysimplereports:
 
 		cur.close()
 
-		self.write(cols, data)
-		self._status = self.STATUS['init']
+		return (cols, data)
 
-	def write(self, header, rows):
+	def _write(self, header, rows):
 		fd = open(self._output, 'w')
 
 		if self._format == 'csv':
