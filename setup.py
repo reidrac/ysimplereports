@@ -1,7 +1,7 @@
 from distutils.core import setup
 
 setup(name='ysimplereports',
-	version='0.2',
+	version='0.3',
 	description='YAML Simple SQL Reports',
 	author='Juan J. Martinez',
 	author_email='jjm@usebox.net',
