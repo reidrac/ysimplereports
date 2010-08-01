@@ -143,7 +143,10 @@ class ysimplereports:
 					raise Exception('port without hostname in report "%s"' % r['name'])
 				if 'hostname' in r['connect'] and not 'port' in r['connect']:
 					# use default port if not specified
-					r['connect']['port'] = 3306
+					if r['connect']['type'] == 'mysql':
+						r['connect']['port'] = 3306
+					else:
+						r['connect']['port'] = 5432
 
 	@property
 	def format(self):
