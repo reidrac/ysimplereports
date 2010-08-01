@@ -168,7 +168,8 @@ class ysimplereports:
 		try:
 			self._db = self._connect(self._yaml['report']['connect'])
 		except Exception as e:
-			raise Exception('In report "%s": %s' % (self._yaml['report']['name'], e))
+			msg = u'In report "%s": %s' % (self._yaml['report']['name'], e)
+			raise Exception(msg.encode('ascii','backslashreplace'))
 
 	def _connect(self, connect = None):
 		if self._output is None:
@@ -250,7 +251,8 @@ class ysimplereports:
 		try:
 			header, rows = self._execute(self._yaml['report']['query'], self._db)
 		except Exception as e:
-			raise Exception('In report "%s": %s' % (self._yaml['report']['name'], e))
+			msg = u'In report "%s": %s' % (self._yaml['report']['name'], e)
+			raise Exception(msg.encode('ascii', 'backslashreplace'))
 
 		# subreport support: execute the subquery for each row of the parent
 		# query, remplacing the row values in the subquery
@@ -274,14 +276,16 @@ class ysimplereports:
 					try:
 						db = self._connect(subyaml['connect'])
 					except Exception as e:
-						raise Exception('In report "%s": %s' % (subyaml['name'], e))
+						msg = u'In report "%s": %s' % (subyaml['report']['name'], e)
+						raise Exception(msg.encode('ascii', 'backslashreplace'))
 				else:
 					db = self._db
 
 				try:
 					dummy, newrows = self._execute(subyaml['query'], db)
 				except Exception as e:
-					raise Exception('In report "%s": %s' % (subyaml['name'], e))
+					msg = u'In report "%s": %s' % (subyaml['report']['name'], e)
+					raise Exception(msg.encode('ascii', 'backslashreplace'))
 
 				if subheader is None:
 					subheader = dummy
