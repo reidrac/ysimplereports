@@ -77,7 +77,10 @@ More information: http://github.com/reidrac/ysimplereports
 """
 
 import csv
-import simplejson as json
+try:
+	import json
+except:
+	import simplejson as json
 from xml.dom.minidom import Document
 
 import logging
