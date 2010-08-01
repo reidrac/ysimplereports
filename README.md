@@ -15,7 +15,7 @@ The report it's specified in a YAML file:
 			hostname: localhost 	# opt with mysql and postgresql, by default UNIX socket
 			port: 3306				# opt with mysql and postgresql, requited if hostname
 			username: user			# req with mysql and postgresql
-			password: passwd		# req with mysql and postgresql, use '' for empty
+			password: passwd		# req with mysql and postgresql, use '' for empty in mysql
 		query: select * from table	# req
 		output: file.csv			# req (format by ext: .csv, .json, .xml)
 
