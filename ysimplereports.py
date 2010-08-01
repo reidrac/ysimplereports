@@ -194,7 +194,7 @@ class ysimplereports:
 				args = { 
 					'db': connect['database'],
 					'user': connect['username'],
-					'passwd': connect['password'],
+					'password': connect['password'],
 					}
 
 				if 'hostname' in connect:
