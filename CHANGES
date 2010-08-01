@@ -1,0 +1,15 @@
+* 0.3: WIP
+
+	* new supported database: PostgreSQL
+
+* 0.2: Sat Jul 31 18:48:19 2010 +0100
+
+	* subreport support
+	* better documentation (README, pydoc)
+
+* 0.1: Wed Jul 28 16:23:09 2010 +0100
+
+	* first release
+	* supported databases: sqlite3, MySQL
+	* supported output: CSV, JSON, XML
+
