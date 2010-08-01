@@ -51,6 +51,7 @@ Required
 --------
 
  - PyYAML
+ - argparse
 
 At least one of the following:
 
